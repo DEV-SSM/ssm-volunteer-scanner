@@ -3,23 +3,128 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sabha Attendance Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shri Swaminarayan Mandir - Golden City</title>
+
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 <style>
-body{font-family:Arial,sans-serif;text-align:center;background:#f5f5f5;padding:15px}
-h2{color:#176b43}
-#reader{max-width:450px;width:100%;margin:15px auto;background:white}
-button{padding:13px 22px;margin:8px;border:0;border-radius:7px;background:#087b45;color:white;font-size:17px}
-#status{background:white;padding:16px;border-radius:9px;margin:15px auto;max-width:450px;overflow-wrap:anywhere}
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ padding:0;
+ width:100%;
+ min-height:100%;
+ font-family:Arial,sans-serif;
+ background:#f5f7f5;
+ text-align:center;
+}
+
+body{
+ padding:10px;
+}
+
+header{
+ padding:8px 4px 12px;
+}
+
+h2{
+ color:#176b43;
+ font-size:25px;
+ margin:4px 0;
+ line-height:1.2;
+}
+
+h4{
+ color:#176b43;
+ font-size:16px;
+ font-weight:normal;
+ margin:3px 0 10px;
+}
+
+h3{
+ color:#333;
+ font-size:19px;
+ margin:8px 0 12px;
+}
+
+#reader{
+ width:100%;
+ max-width:600px;
+ margin:8px auto 12px;
+ background:white;
+ border-radius:10px;
+ overflow:hidden;
+}
+
+.controls{
+ display:flex;
+ width:100%;
+ max-width:600px;
+ gap:10px;
+ margin:10px auto;
+}
+
+button{
+ flex:1;
+ min-width:0;
+ padding:15px 5px;
+ border:0;
+ border-radius:8px;
+ color:white;
+ font-size:17px;
+ font-weight:bold;
+ cursor:pointer;
+}
+
+#start{background:#087b45}
+#stop{background:#b3261e}
+
+#status{
+ width:100%;
+ max-width:600px;
+ min-height:120px;
+ margin:12px auto;
+ padding:20px 12px;
+ border-radius:10px;
+ background:white;
+ color:#222;
+ font-size:21px;
+ font-weight:bold;
+ line-height:1.6;
+ white-space:pre-line;
+ overflow-wrap:anywhere;
+ box-shadow:0 2px 7px rgba(0,0,0,.08);
+}
+
+@media(max-width:480px){
+ body{padding:7px}
+ h2{font-size:23px}
+ h4{font-size:15px}
+ h3{font-size:18px}
+ button{font-size:16px;padding:15px 3px}
+ #status{font-size:21px;padding:18px 8px}
+ #reader{max-width:100%}
+}
 </style>
 </head>
+
 <body>
+
+<header>
 <h2>Shri Swaminarayan Mandir</h2>
+<h4>Golden City</h4>
 <h3>Sabha Attendance QR Scanner</h3>
+</header>
+
 <div id="reader"></div>
+
+<div class="controls">
 <button id="start">Start Camera</button>
 <button id="stop">Stop Camera</button>
+</div>
+
 <div id="status">Ready to scan</div>
 
 <script>
@@ -90,6 +195,7 @@ async function onScan(decodedText){
  if(busy)return;
 
  const memberId=getMemberId(decodedText);
+
  if(!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)){
   show("Invalid member QR code.");
   return;
@@ -101,6 +207,7 @@ async function onScan(decodedText){
  lastId=memberId;
  lastTime=now;
  busy=true;
+
  show("Recording attendance...");
 
  try{
@@ -112,18 +219,17 @@ async function onScan(decodedText){
    const time=result.time||"";
 
    show(
-    (result.duplicate?"Already recorded":"Attendance recorded")+
-    "\nMember: "+name+
-    "\nDate: "+date+
-    "\nTime: "+time+
-    "\n"+(result.message||"")
+    (result.duplicate?"Already recorded":"ATTENDANCE MARKED!")+
+    "\n\n"+name+
+    "\n\nDate: "+date+
+    "\nTime: "+time
    );
   }else{
-   show("Attendance not recorded: "+
+   show("Attendance not recorded:\n"+
     (result && result.message ? result.message:"Unknown response"));
   }
  }catch(error){
-  show("ERROR: "+error.message);
+  show("ERROR:\n"+error.message);
  }finally{
   busy=false;
  }
@@ -139,6 +245,7 @@ async function startCamera(){
   if(!scanner)scanner=new Html5Qrcode("reader");
 
   show("Opening rear camera...");
+
   const cameras=await Html5Qrcode.getCameras();
 
   if(!cameras.length){
@@ -151,7 +258,14 @@ async function startCamera(){
 
   await scanner.start(
    cameraId,
-   {fps:10,qrbox:{width:250,height:250}},
+   {
+    fps:15,
+    qrbox:(width,height)=>{
+     const size=Math.floor(Math.min(width,height,300)*0.85);
+     return {width:size,height:size};
+    },
+    aspectRatio:1.0
+   },
    onScan,
    ()=>{}
   );
@@ -176,5 +290,6 @@ async function stopCamera(){
 document.getElementById("start").onclick=startCamera;
 document.getElementById("stop").onclick=stopCamera;
 </script>
+
 </body>
 </html>
