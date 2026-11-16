@@ -2,138 +2,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sabha Attendance QR Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-      background: #f5f5f5;
-    }
-    h2 { color: #333; }
-    #reader {
-      width: 100%;
-      max-width: 420px;
-      margin: 20px auto;
-      background: white;
-    }
-    button {
-      padding: 14px 25px;
-      margin: 8px;
-      border: 0;
-      border-radius: 8px;
-      background: #087b45;
-      color: white;
-      font-size: 17px;
-    }
-    #status {
-      padding: 15px;
-      background: white;
-      border-radius: 8px;
-      margin-top: 15px;
-      overflow-wrap: anywhere;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabha Attendance Scanner</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;text-align:center;background:#f5f5f5;padding:15px}
+h2{color:#176b43}
+#reader{max-width:450px;width:100%;margin:15px auto;background:white}
+button{padding:13px 22px;margin:8px;border:0;border-radius:7px;background:#087b45;color:white;font-size:17px}
+#status{background:white;padding:16px;border-radius:9px;margin:15px auto;max-width:450px;overflow-wrap:anywhere}
+</style>
 </head>
 <body>
-  <h2>Shri Swaminarayan Mandir</h2>
-  <h3>Sabha Attendance QR Scanner</h3>
+<h2>Shri Swaminarayan Mandir</h2>
+<h3>Sabha Attendance QR Scanner</h3>
+<div id="reader"></div>
+<button id="start">Start Camera</button>
+<button id="stop">Stop Camera</button>
+<div id="status">Ready to scan</div>
 
-  <div id="reader"></div>
-  <button id="start">Start Camera</button>
-  <button id="stop">Stop Camera</button>
-  <div id="status">Ready to scan</div>
+<script>
+const API="https://script.google.com/macros/s/AKfycbx-tkq1P1sJmhg218VhFFr9_UI0HJbxYFvpz0vCyXQMrygwmKJ7GvUc/exec";
 
-  <script>
-    const statusBox = document.getElementById("status");
-    let scanner = null;
-    let busy = false;
-    let lastId = "";
-    let lastTime = 0;
+let scanner=null;
+let busy=false;
+let lastId="";
+let lastTime=0;
 
-    function show(message) {
-      statusBox.textContent = message;
-    }
+function show(message){
+ document.getElementById("status").textContent=message;
+}
 
-    function getMemberId(decodedText) {
-      try {
-        const url = new URL(decodedText);
-        return url.searchParams.get("id") || "";
-      } catch (e) {
-        return decodedText.trim();
-      }
-    }
+function getMemberId(text){
+ try{
+  const u=new URL(text);
+  return u.searchParams.get("id")||"";
+ }catch(e){
+  return text.trim();
+ }
+}
 
-    async function startScanner() {
-      if (!window.isSecureContext || !navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia) {
-        show("Camera requires a secure HTTPS website. Open this GitHub Pages site in Chrome.");
-        return;
-      }
+function callAttendanceAPI(memberId){
+ return new Promise((resolve,reject)=>{
+  const callback="ssmCallback"+Date.now()+"_"+Math.floor(Math.random()*100000);
+  const script=document.createElement("script");
+  let finished=false;
 
-      try {
-        if (!scanner) {
-          scanner = new Html5Qrcode("reader");
-        }
+  const cleanup=()=>{
+   finished=true;
+   delete window[callback];
+   script.remove();
+   clearTimeout(timer);
+  };
 
-        show("Requesting camera permission...");
+  const timer=setTimeout(()=>{
+   if(!finished){
+    cleanup();
+    reject(new Error("Connection timed out. Check internet or Apps Script deployment."));
+   }
+  },20000);
 
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras.length) {
-          show("No camera found on this phone.");
-          return;
-        }
+  window[callback]=(result)=>{
+   if(finished)return;
+   cleanup();
+   resolve(result);
+  };
 
-        const backCamera = cameras.find(c =>
-          /back|rear|environment/i.test(c.label)
-        );
-        const cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
+  script.onerror=()=>{
+   if(!finished){
+    cleanup();
+    reject(new Error("Could not connect to Google Sheets."));
+   }
+  };
 
-        await scanner.start(
-          cameraId,
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async decodedText => {
-            if (busy) return;
+  script.src=API+
+   "?api=scan"+
+   "&memberId="+encodeURIComponent(memberId)+
+   "&callback="+encodeURIComponent(callback)+
+   "&_="+Date.now();
 
-            const memberId = getMemberId(decodedText);
-            if (!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)) {
-              show("QR code does not contain a valid member ID.");
-              return;
-            }
+  document.body.appendChild(script);
+ });
+}
 
-            const now = Date.now();
-            if (memberId === lastId && now - lastTime < 4000) return;
-            lastId = memberId;
-            lastTime = now;
-            busy = true;
+async function onScan(decodedText){
+ if(busy)return;
 
-            show("Scanned member ID: " + memberId +
-                 ". Attendance connection must be configured.");
+ const memberId=getMemberId(decodedText);
+ if(!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)){
+  show("Invalid member QR code.");
+  return;
+ }
 
-            busy = false;
-          },
-          () => {}
-        );
+ const now=Date.now();
+ if(memberId===lastId && now-lastTime<5000)return;
 
-        show("Camera started. Scan a member QR code.");
-      } catch (error) {
-        show("Camera error: " + (error.message || error));
-      }
-    }
+ lastId=memberId;
+ lastTime=now;
+ busy=true;
+ show("Recording attendance...");
 
-    async function stopScanner() {
-      if (scanner && scanner.isScanning) {
-        await scanner.stop();
-        show("Camera stopped.");
-      }
-    }
+ try{
+  const result=await callAttendanceAPI(memberId);
 
-    document.getElementById("start").addEventListener("click", startScanner);
-    document.getElementById("stop").addEventListener("click", stopScanner);
-  </script>
+  if(result && result.success){
+   const name=result.name||result.memberName||"Member";
+   const date=result.date||"";
+   const time=result.time||"";
+
+   show(
+    (result.duplicate?"Already recorded":"Attendance recorded")+
+    "\nMember: "+name+
+    "\nDate: "+date+
+    "\nTime: "+time+
+    "\n"+(result.message||"")
+   );
+  }else{
+   show("Attendance not recorded: "+
+    (result && result.message ? result.message:"Unknown response"));
+  }
+ }catch(error){
+  show("ERROR: "+error.message);
+ }finally{
+  busy=false;
+ }
+}
+
+async function startCamera(){
+ try{
+  if(!window.isSecureContext || !navigator.mediaDevices){
+   show("Please open this scanner using its HTTPS GitHub Pages address.");
+   return;
+  }
+
+  if(!scanner)scanner=new Html5Qrcode("reader");
+
+  show("Opening rear camera...");
+  const cameras=await Html5Qrcode.getCameras();
+
+  if(!cameras.length){
+   show("No camera found.");
+   return;
+  }
+
+  const rear=cameras.find(c=>/back|rear|environment/i.test(c.label));
+  const cameraId=rear?rear.id:cameras[cameras.length-1].id;
+
+  await scanner.start(
+   cameraId,
+   {fps:10,qrbox:{width:250,height:250}},
+   onScan,
+   ()=>{}
+  );
+
+  show("Camera ready. Scan a member QR code.");
+ }catch(error){
+  show("Camera error: "+error.message);
+ }
+}
+
+async function stopCamera(){
+ try{
+  if(scanner && scanner.isScanning){
+   await scanner.stop();
+   show("Camera stopped.");
+  }
+ }catch(error){
+  show("Camera stop error: "+error.message);
+ }
+}
+
+document.getElementById("start").onclick=startCamera;
+document.getElementById("stop").onclick=stopCamera;
+</script>
 </body>
 </html>
