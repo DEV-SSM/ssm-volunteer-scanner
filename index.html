@@ -3,293 +3,472 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Shri Swaminarayan Mandir - Golden City</title>
-
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0755a5">
+<title>SSM Golden City - Volunteer QR Scanner</title>
 <style>
 *{box-sizing:border-box}
-
-html,body{
- margin:0;
- padding:0;
- width:100%;
- min-height:100%;
- font-family:Arial,sans-serif;
- background:#f5f7f5;
- text-align:center;
-}
-
-body{
- padding:10px;
-}
-
-header{
- padding:8px 4px 12px;
-}
-
-h2{
- color:#176b43;
- font-size:25px;
- margin:4px 0;
- line-height:1.2;
-}
-
-h4{
- color:#176b43;
- font-size:16px;
- font-weight:normal;
- margin:3px 0 10px;
-}
-
-h3{
- color:#333;
- font-size:19px;
- margin:8px 0 12px;
-}
-
-#reader{
- width:100%;
- max-width:600px;
- margin:8px auto 12px;
- background:white;
- border-radius:10px;
- overflow:hidden;
-}
-
-.controls{
- display:flex;
- width:100%;
- max-width:600px;
- gap:10px;
- margin:10px auto;
-}
-
-button{
- flex:1;
- min-width:0;
- padding:15px 5px;
- border:0;
- border-radius:8px;
- color:white;
- font-size:17px;
- font-weight:bold;
- cursor:pointer;
-}
-
-#start{background:#087b45}
-#stop{background:#b3261e}
-
-#status{
- width:100%;
- max-width:600px;
- min-height:120px;
- margin:12px auto;
- padding:20px 12px;
- border-radius:10px;
- background:white;
- color:#222;
- font-size:21px;
- font-weight:bold;
- line-height:1.6;
- white-space:pre-line;
- overflow-wrap:anywhere;
- box-shadow:0 2px 7px rgba(0,0,0,.08);
-}
-
-@media(max-width:480px){
- body{padding:7px}
- h2{font-size:23px}
- h4{font-size:15px}
- h3{font-size:18px}
- button{font-size:16px;padding:15px 3px}
- #status{font-size:21px;padding:18px 8px}
- #reader{max-width:100%}
-}
+body{margin:0;background:#eef5ff;color:#082e67;font-family:Arial,sans-serif}
+header{background:linear-gradient(135deg,#0755a5,#0878d8);color:#fff;text-align:center;padding:16px 10px;border-bottom:4px solid #ffd34d}
+header strong{display:block;font-size:20px}
+header span{font-size:13px}
+main{max-width:700px;margin:14px auto;padding:0 12px}
+.panel{background:#fff;border:1px solid #c7d9ef;border-radius:12px;padding:14px;box-shadow:0 2px 8px #cdd9e8}
+.note{font-size:14px;line-height:1.5}
+.actions{display:flex;gap:9px;margin:12px 0;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:13px 18px;color:white;font-weight:800;font-size:15px}
+#start{background:#0875dc}
+#stop{background:#e92843}
+button:disabled{opacity:.55}
+#reader{width:100%;min-height:120px;background:#071b33;border-radius:10px;overflow:hidden}
+#reader video{object-fit:cover}
+#result{margin-top:12px;padding:13px;border-radius:9px;background:#eef5ff;border:1px solid #c7d9ef;white-space:pre-line;line-height:1.6;font-weight:800;min-height:65px}
+.success{background:#e8fff3!important;color:#087849;border-color:#a9e6c7!important}
+.duplicate{background:#fff8e7!important;color:#855900;border-color:#f1d58a!important}
+.error{background:#fff0f2!important;color:#c7193b;border-color:#f2b8c2!important}
+.small{font-size:12px;color:#456;margin-top:10px}
+footer{text-align:center;color:#fff;background:#07509a;border-radius:7px;padding:9px;margin-top:12px;font-size:12px}
 </style>
 </head>
-
 <body>
 
 <header>
-<h2>Shri Swaminarayan Mandir</h2>
-<h4>Golden City</h4>
-<h3>Sabha Attendance QR Scanner</h3>
+<strong>Shri Swaminarayan Mandir - Golden City</strong>
+<span>Satsang Sabha Volunteer QR Scanner</span>
 </header>
+
+<main>
+<section class="panel">
+
+<p class="note">
+Point this phone's rear camera at each member's existing personal QR code.
+Attendance is recorded automatically. Members do not need to open or tap the QR link.
+Keep this page open while scanning.
+</p>
+
+<div class="actions">
+<button id="start" type="button">Start Camera</button>
+<button id="stop" type="button" disabled>Stop Camera</button>
+</div>
 
 <div id="reader"></div>
 
-<div class="controls">
-<button id="start">Start Camera</button>
-<button id="stop">Stop Camera</button>
+<div id="result">
+Camera is stopped. Press Start Camera and allow camera permission.
 </div>
 
-<div id="status">Ready to scan</div>
+<div class="small" id="count">
+New attendance scans this session: 0
+</div>
+
+<div class="small">
+If asked, allow camera access in your browser.
+Use the HTTPS GitHub Pages address, not a local file.
+</div>
+
+</section>
+
+<footer>
+|| શ્રી સ્વામિનારાયણ ભગવાનની જય || &nbsp; | &nbsp; SSM ATTND | Golden City
+</footer>
+</main>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <script>
-const API="https://script.google.com/macros/s/AKfycbx-tkq1P1sJmhg218VhFFr9_UI0HJbxYFvpz0vCyXQMrygwmKJ7GvUcN6DBnTiOAMUc/exec";
+'use strict';
 
-let scanner=null;
-let busy=false;
-let lastId="";
-let lastTime=0;
+// Google Apps Script web-app URL.
+const APPS_SCRIPT_URL =
+'https://script.google.com/macros/s/AKfycbx-tkq1P1sJmhg218VhFFr9_UI0HJbxYFvpz0vCyXQMrygwmKJ7GvUc/exec';
 
-function show(message){
- document.getElementById("status").textContent=message;
+let qrScanner = null;
+let busy = false;
+let lastId = '';
+let lastAt = 0;
+let totalNew = 0;
+
+// Audio context for attendance confirmation beep.
+let attendanceAudio = null;
+
+const resultBox = document.getElementById('result');
+const startButton = document.getElementById('start');
+const stopButton = document.getElementById('stop');
+
+function showResult(message, type) {
+  resultBox.className = type || '';
+  resultBox.textContent = message;
 }
 
-function getMemberId(text){
- try{
-  const u=new URL(text);
-  return u.searchParams.get("id")||"";
- }catch(e){
-  return text.trim();
- }
-}
+// Prepare audio after the volunteer presses Start Camera.
+// This helps Android Chrome allow the confirmation sound.
+async function prepareAttendanceSound() {
+  try {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
 
-function callAttendanceAPI(memberId){
- return new Promise((resolve,reject)=>{
-  const callback="ssmCallback"+Date.now()+"_"+Math.floor(Math.random()*100000);
-  const script=document.createElement("script");
-  let finished=false;
+    if (!AudioContextClass) return;
 
-  const cleanup=()=>{
-   finished=true;
-   delete window[callback];
-   script.remove();
-   clearTimeout(timer);
-  };
+    if (!attendanceAudio) {
+      attendanceAudio = new AudioContextClass();
+    }
 
-  const timer=setTimeout(()=>{
-   if(!finished){
-    cleanup();
-    reject(new Error("Connection timed out. Check internet or Apps Script deployment."));
-   }
-  },20000);
-
-  window[callback]=(result)=>{
-   if(finished)return;
-   cleanup();
-   resolve(result);
-  };
-
-  script.onerror=()=>{
-   if(!finished){
-    cleanup();
-    reject(new Error("Could not connect to Google Sheets."));
-   }
-  };
-
-  script.src=API+
-   "?api=scan"+
-   "&memberId="+encodeURIComponent(memberId)+
-   "&callback="+encodeURIComponent(callback)+
-   "&_="+Date.now();
-
-  document.body.appendChild(script);
- });
-}
-
-async function onScan(decodedText){
- if(busy)return;
-
- const memberId=getMemberId(decodedText);
-
- if(!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)){
-  show("Invalid member QR code.");
-  return;
- }
-
- const now=Date.now();
- if(memberId===lastId && now-lastTime<5000)return;
-
- lastId=memberId;
- lastTime=now;
- busy=true;
-
- show("Recording attendance...");
-
- try{
-  const result=await callAttendanceAPI(memberId);
-
-  if(result && result.success){
-   const name=result.name||result.memberName||"Member";
-   const date=result.date||"";
-   const time=result.time||"";
-
-   show(
-    (result.duplicate?"Already recorded":"ATTENDANCE MARKED!")+
-    "\n\n"+name+
-    "\n\nDate: "+date+
-    "\nTime: "+time
-   );
-  }else{
-   show("Attendance not recorded:\n"+
-    (result && result.message ? result.message:"Unknown response"));
+    if (attendanceAudio.state === 'suspended') {
+      await attendanceAudio.resume();
+    }
+  } catch (e) {
+    console.warn('Audio preparation:', e);
   }
- }catch(error){
-  show("ERROR:\n"+error.message);
- }finally{
-  busy=false;
- }
 }
 
-async function startCamera(){
- try{
-  if(!window.isSecureContext || !navigator.mediaDevices){
-   show("Please open this scanner using its HTTPS GitHub Pages address.");
-   return;
+// Play one short beep only after new attendance is recorded.
+function playAttendanceSound() {
+  try {
+    if (!attendanceAudio ||
+        attendanceAudio.state !== 'running') {
+      return;
+    }
+
+    const oscillator = attendanceAudio.createOscillator();
+    const gain = attendanceAudio.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(attendanceAudio.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(
+      880, attendanceAudio.currentTime
+    );
+
+    gain.gain.setValueAtTime(
+      0.001, attendanceAudio.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.18, attendanceAudio.currentTime + 0.015
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001, attendanceAudio.currentTime + 0.20
+    );
+
+    oscillator.start(attendanceAudio.currentTime);
+    oscillator.stop(attendanceAudio.currentTime + 0.21);
+
+  } catch (e) {
+    console.warn('Attendance beep:', e);
+  }
+}
+
+function extractMemberId(decodedText) {
+  const raw = String(decodedText || '').trim();
+
+  if (!raw) return '';
+
+  try {
+    const parsed = new URL(raw);
+    const id = parsed.searchParams.get('id');
+
+    if (id) return id.trim();
+
+  } catch (e) {}
+
+  const match = raw.match(/[?&]id=([^&#]+)/i);
+
+  if (match) {
+    try {
+      return decodeURIComponent(
+        match[1].replace(/\+/g, '%20')
+      ).trim();
+    } catch (e) {
+      return match[1].trim();
+    }
   }
 
-  if(!scanner)scanner=new Html5Qrcode("reader");
+  return /^[A-Za-z0-9_-]{1,50}$/.test(raw) ? raw : '';
+}
 
-  show("Opening rear camera...");
+// JSONP connection to Google Apps Script.
+function callAppsScript(params) {
+  return new Promise((resolve, reject) => {
 
-  const cameras=await Html5Qrcode.getCameras();
+    const callbackName =
+      'ssmJsonp_' + Date.now() + '_' +
+      Math.floor(Math.random() * 1000000);
 
-  if(!cameras.length){
-   show("No camera found.");
-   return;
+    const script = document.createElement('script');
+    const query = new URLSearchParams(params);
+
+    query.set('callback', callbackName);
+    query.set('_', String(Date.now()));
+
+    let finished = false;
+
+    const cleanup = () => {
+      if (finished) return;
+
+      finished = true;
+      delete window[callbackName];
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+
+    const timeout = window.setTimeout(() => {
+      cleanup();
+
+      reject(new Error(
+        'The attendance server did not respond. Check your internet connection and try again.'
+      ));
+    }, 25000);
+
+    window[callbackName] = data => {
+      window.clearTimeout(timeout);
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      cleanup();
+
+      reject(new Error(
+        'Could not connect to Google Apps Script. Check the deployment URL and internet connection.'
+      ));
+    };
+
+    script.src =
+      APPS_SCRIPT_URL + '?' + query.toString();
+
+    document.head.appendChild(script);
+  });
+}
+
+async function handleDecoded(text) {
+
+  const memberId = extractMemberId(text);
+
+  if (!memberId) {
+    showResult(
+      'This QR code does not contain a recognised member ID. Scan a member personal QR code.',
+      'error'
+    );
+    return;
   }
 
-  const rear=cameras.find(c=>/back|rear|environment/i.test(c.label));
-  const cameraId=rear?rear.id:cameras[cameras.length-1].id;
+  const now = Date.now();
 
-  await scanner.start(
-   cameraId,
-   {
-    fps:15,
-    qrbox:(width,height)=>{
-     const size=Math.floor(Math.min(width,height,300)*0.85);
-     return {width:size,height:size};
-    },
-    aspectRatio:1.0
-   },
-   onScan,
-   ()=>{}
+  if (
+    busy ||
+    (memberId.toLowerCase() === lastId &&
+     now - lastAt < 2200)
+  ) {
+    return;
+  }
+
+  busy = true;
+  lastId = memberId.toLowerCase();
+  lastAt = now;
+
+  showResult('Checking member ' + memberId + '…', '');
+
+  try {
+
+    const data = await callAppsScript({
+      api: 'scan',
+      memberId: memberId
+    });
+
+    if (data && data.success) {
+
+      const when =
+        (data.date || '') +
+        (data.time ? '  ' + data.time : '');
+
+      if (data.duplicate) {
+
+        showResult(
+          'ALREADY RECORDED\n' +
+          (data.name || memberId) +
+          '\n' + when,
+          'duplicate'
+        );
+
+      } else {
+
+        totalNew++;
+
+        document.getElementById('count').textContent =
+          'New attendance scans this session: ' + totalNew;
+
+        showResult(
+          'ATTENDANCE RECORDED ✓\n' +
+          (data.name || memberId) +
+          '\n' + when,
+          'success'
+        );
+
+        // Confirmation beep for newly recorded attendance.
+        playAttendanceSound();
+
+        // Rebuild report sheets after attendance confirmation.
+        callAppsScript({api:'sync'})
+          .catch(err => console.warn('Report sync:', err));
+      }
+
+    } else {
+
+      showResult(
+        (data && data.message) ||
+        'Attendance could not be recorded.',
+        'error'
+      );
+    }
+
+  } catch (err) {
+
+    showResult(
+      err.message || String(err),
+      'error'
+    );
+
+  } finally {
+
+    busy = false;
+  }
+}
+
+async function startCamera() {
+
+  if (qrScanner && qrScanner.isScanning) return;
+
+  if (!window.Html5Qrcode) {
+    showResult(
+      'QR scanner library did not load. Check your internet connection and reload this page.',
+      'error'
+    );
+    return;
+  }
+
+  startButton.disabled = true;
+
+  showResult('Opening rear camera…', '');
+
+  try {
+
+    // Enable audio using the Start Camera button interaction.
+    await prepareAttendanceSound();
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      throw new Error(
+        'Camera access requires an HTTPS website. Open this scanner using its GitHub Pages https:// address.'
+      );
+    }
+
+    if (!qrScanner) {
+      qrScanner = new Html5Qrcode(
+        'reader',
+        {verbose:false}
+      );
+    }
+
+    await qrScanner.start(
+
+      {facingMode:'environment'},
+
+      {
+        fps:12,
+
+        qrbox:(w,h) => {
+          const size = Math.max(
+            180,
+            Math.min(
+              320,
+              Math.floor(Math.min(w,h)*0.72)
+            )
+          );
+
+          return {
+            width:size,
+            height:size
+          };
+        },
+
+        aspectRatio:1.0,
+        rememberLastUsedCamera:true
+      },
+
+      handleDecoded,
+
+      () => {}
+    );
+
+    showResult(
+      'Camera is ready. Show one member QR code at a time.',
+      'success'
+    );
+
+    stopButton.disabled = false;
+
+  } catch (err) {
+
+    const message =
+      err && err.name === 'NotAllowedError'
+      ? 'Camera permission was denied by the browser. Open the GitHub Pages scanner in Chrome, tap the site icon → Permissions → Camera → Allow, then reload.'
+      : ((err && err.message) || String(err));
+
+    showResult(message, 'error');
+
+  } finally {
+
+    startButton.disabled = false;
+  }
+}
+
+async function stopCamera() {
+
+  if (qrScanner && qrScanner.isScanning) {
+
+    try {
+      await qrScanner.stop();
+      await qrScanner.clear();
+
+    } catch (err) {
+
+      showResult(
+        'Unable to stop camera: ' +
+        (err.message || err),
+        'error'
+      );
+    }
+  }
+
+  stopButton.disabled = true;
+
+  showResult(
+    'Camera is stopped. Press Start Camera when ready.',
+    ''
   );
-
-  show("Camera ready. Scan a member QR code.");
- }catch(error){
-  show("Camera error: "+error.message);
- }
 }
 
-async function stopCamera(){
- try{
-  if(scanner && scanner.isScanning){
-   await scanner.stop();
-   show("Camera stopped.");
+startButton.addEventListener('click', startCamera);
+stopButton.addEventListener('click', stopCamera);
+
+window.addEventListener('pagehide', () => {
+
+  if (qrScanner && qrScanner.isScanning) {
+    qrScanner.stop().catch(() => {});
   }
- }catch(error){
-  show("Camera stop error: "+error.message);
- }
-}
 
-document.getElementById("start").onclick=startCamera;
-document.getElementById("stop").onclick=stopCamera;
+  if (attendanceAudio) {
+    attendanceAudio.close().catch(() => {});
+  }
+});
+
 </script>
-
 </body>
 </html>
